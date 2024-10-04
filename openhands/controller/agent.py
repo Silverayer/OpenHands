@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Type
 
-from openhands.memory.memory_modules import ConversationMemory
+from openhands.memory.conversation_memory import ConversationMemory
 
 if TYPE_CHECKING:
     from openhands.controller.state.state import State

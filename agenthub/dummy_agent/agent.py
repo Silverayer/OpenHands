@@ -27,7 +27,7 @@ from openhands.events.observation import (
 )
 from openhands.events.serialization.event import event_to_dict
 from openhands.llm.llm import LLM
-from openhands.memory.memory_modules import ConversationMemory
+from openhands.memory.conversation_memory import ConversationMemory
 
 """
 FIXME: There are a few problems this surfaced

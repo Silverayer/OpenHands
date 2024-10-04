@@ -7,6 +7,7 @@ from openhands.events.action.agent import (
 from openhands.events.action.message import MessageAction
 from openhands.events.event import Event, EventSource
 from openhands.events.observation.delegate import AgentDelegateObservation
+from openhands.events.observation.observation import Observation
 from openhands.events.stream import EventStream, EventStreamSubscriber
 
 
@@ -23,6 +24,7 @@ class ConversationMemory:
         self._event_stream = event_stream
         self._event_stream.subscribe(EventStreamSubscriber.MEMORY, self.on_event)
         self.delegates = {}
+        self.start_id = self._event_stream.get_latest_event_id()
 
     def get_events(
         self, reverse: bool = False, include_delegates: bool = False
@@ -42,7 +44,7 @@ class ConversationMemory:
         end_id = self._event_stream.get_latest_event_id()
 
         # FIXME this ignores that there are events that won't be returned, like NullObservations
-        start_id = max(0, end_id - n + 1)
+        start_id = max(self.start_id, end_id - n + 1)
 
         return list(
             event
@@ -84,6 +86,13 @@ class ConversationMemory:
             f'Delegate {delegate_agent} with task {delegate_task} ran from id={delegate_start} to id={delegate_end}'
         )
 
+    def reset(self):
+        self.delegates = {}
+
+        # wipe history of previous interactions
+        # alternatively, we can re-initialize a new event stream, then we need to notify everyone who is subscribed to this event stream
+        self.start_id = self._event_stream.get_latest_event_id()
+
     def get_current_user_intent(self):
         """Returns the latest user message and image(if provided) that appears after a FinishAction, or the first (the task) if nothing was finished yet."""
         last_user_message = None
@@ -108,10 +117,63 @@ class ConversationMemory:
         last_action = next(
             (
                 event
-                for event in self._event_stream.get_events(end_id=end_id, reverse=True)
+                for event in self._event_stream.get_events(
+                    start_id=self.start_id, end_id=end_id, reverse=True
+                )
                 if isinstance(event, Action)
             ),
             None,
         )
 
         return last_action
+
+    def get_last_observation(self, end_id: int = -1) -> Observation | None:
+        """Return the last observation from the event stream, filtered to exclude unwanted events."""
+
+        end_id = (
+            end_id if end_id != -1 else self._event_stream.get_latest_event_id() - 1
+        )
+
+        last_observation = next(
+            (
+                event
+                for event in self._event_stream.get_events(
+                    start_id=self.start_id, end_id=end_id, reverse=True
+                )
+                if isinstance(event, Observation)
+            ),
+            None,
+        )
+
+        return last_observation
+
+    def get_last_user_message(self) -> str:
+        """Return the content of the last user message from the event stream."""
+        last_user_message = next(
+            (
+                event.content
+                for event in self._event_stream.get_events(
+                    start_id=self.start_id, reverse=True
+                )
+                if isinstance(event, MessageAction) and event.source == EventSource.USER
+            ),
+            None,
+        )
+
+        return last_user_message if last_user_message is not None else ''
+
+    def get_last_agent_message(self) -> str:
+        """Return the content of the last agent message from the event stream."""
+        last_agent_message = next(
+            (
+                event.content
+                for event in self._event_stream.get_events(
+                    start_id=self.start_id, reverse=True
+                )
+                if isinstance(event, MessageAction)
+                and event.source == EventSource.AGENT
+            ),
+            None,
+        )
+
+        return last_agent_message if last_agent_message is not None else ''

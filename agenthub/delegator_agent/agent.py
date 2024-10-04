@@ -4,7 +4,7 @@ from openhands.core.config import AgentConfig
 from openhands.events.action import Action, AgentDelegateAction, AgentFinishAction
 from openhands.events.observation import AgentDelegateObservation
 from openhands.llm.llm import LLM
-from openhands.memory.memory_modules import ConversationMemory
+from openhands.memory.conversation_memory import ConversationMemory
 
 
 class DelegatorAgent(Agent):
@@ -23,7 +23,7 @@ class DelegatorAgent(Agent):
         - config: The agent config
         - memory: The memory to be used by this agent
         """
-        super().__init__(llm, config, memory)
+        super().__init__(llm, config, memory=memory)
 
     def step(self, state: State) -> Action:
         """Checks to see if current step is completed, returns AgentFinishAction if True.

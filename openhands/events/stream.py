@@ -11,7 +11,6 @@ from openhands.events.action.agent import (
     ChangeAgentStateAction,
 )
 from openhands.events.action.empty import NullAction
-from openhands.events.action.message import MessageAction
 from openhands.events.event import Event, EventSource
 from openhands.events.observation import Observation
 from openhands.events.observation.agent import AgentStateChangedObservation
@@ -202,49 +201,6 @@ class EventStream:
         self._cur_id = 0
         # self._subscribers = {}
         self._reinitialize_from_file_store()
-
-    def get_last_observation(self, end_id: int = -1) -> Observation | None:
-        """Return the last observation from the event stream, filtered to exclude unwanted events."""
-
-        end_id = end_id if end_id != -1 else self._cur_id - 1
-
-        last_observation = next(
-            (
-                event
-                for event in self.get_events(end_id=end_id, reverse=True)
-                if isinstance(event, Observation)
-            ),
-            None,
-        )
-
-        return last_observation
-
-    def get_last_user_message(self) -> str:
-        """Return the content of the last user message from the event stream."""
-        last_user_message = next(
-            (
-                event.content
-                for event in self.get_events(reverse=True)
-                if isinstance(event, MessageAction) and event.source == EventSource.USER
-            ),
-            None,
-        )
-
-        return last_user_message if last_user_message is not None else ''
-
-    def get_last_agent_message(self) -> str:
-        """Return the content of the last agent message from the event stream."""
-        last_agent_message = next(
-            (
-                event.content
-                for event in self.get_events(reverse=True)
-                if isinstance(event, MessageAction)
-                and event.source == EventSource.AGENT
-            ),
-            None,
-        )
-
-        return last_agent_message if last_agent_message is not None else ''
 
     def get_last_events(self, n: int) -> list[Event]:
         """Return the last n events from the event stream."""

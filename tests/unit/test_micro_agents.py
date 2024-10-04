@@ -13,7 +13,7 @@ from openhands.core.config import AgentConfig
 from openhands.events import EventSource
 from openhands.events.action import MessageAction
 from openhands.events.stream import EventStream
-from openhands.memory.memory_modules import ConversationMemory
+from openhands.memory.conversation_memory import ConversationMemory
 from openhands.storage import get_file_store
 
 

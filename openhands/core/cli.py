@@ -27,7 +27,7 @@ from openhands.events.observation import (
     CmdOutputObservation,
 )
 from openhands.llm.llm import LLM
-from openhands.memory.memory_modules import ConversationMemory
+from openhands.memory.conversation_memory import ConversationMemory
 from openhands.runtime import get_runtime_cls
 from openhands.runtime.runtime import Runtime
 from openhands.storage import get_file_store
