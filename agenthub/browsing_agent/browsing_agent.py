@@ -18,8 +18,8 @@ from openhands.events.action import (
 from openhands.events.event import EventSource
 from openhands.events.observation import BrowserOutputObservation
 from openhands.events.observation.observation import Observation
-from openhands.events.stream import EventStream
 from openhands.llm.llm import LLM
+from openhands.memory.conversation_memory import ConversationMemory
 from openhands.runtime.plugins import (
     PluginRequirement,
 )
@@ -105,14 +105,14 @@ class BrowsingAgent(Agent):
         self,
         llm: LLM,
         config: AgentConfig,
-        event_stream: EventStream,
+        memory: ConversationMemory,
     ) -> None:
         """Initializes a new instance of the BrowsingAgent class.
 
         Parameters:
         - llm (LLM): The llm to be used by this agent
         """
-        super().__init__(llm, config, event_stream)
+        super().__init__(llm, config, memory)
         # define a configurable action space, with chat functionality, web navigation, and webpage grounding using accessibility tree and HTML.
         # see https://github.com/ServiceNow/BrowserGym/blob/main/core/src/browsergym/core/action/highlevel.py for more details
         action_subsets = ['chat', 'bid']
@@ -152,13 +152,13 @@ class BrowsingAgent(Agent):
         last_obs = None
         last_action = None
 
-        if EVAL_MODE and len(self.event_stream.get_events_as_list()) == 1:
+        if EVAL_MODE and len(self.memory.get_events()) == 1:
             # for webarena and miniwob++ eval, we need to retrieve the initial observation already in browser env
             # initialize and retrieve the first observation by issuing an noop OP
             # For non-benchmark browsing, the browser env starts with a blank page, and the agent is expected to first navigate to desired websites
             return BrowseInteractiveAction(browser_actions='noop()')
 
-        for event in self.event_stream.get_events():
+        for event in self.memory.get_events():
             if isinstance(event, BrowseInteractiveAction):
                 prev_actions.append(event.browser_actions)
                 last_action = event
@@ -203,7 +203,7 @@ class BrowsingAgent(Agent):
                 )
                 return MessageAction('Error encountered when browsing.')
 
-        goal, _ = self.event_stream.get_current_user_intent()
+        goal, _ = self.memory.get_current_user_intent()
 
         if goal is None:
             goal = state.inputs['task']

@@ -8,7 +8,6 @@ from openhands.core.logger import openhands_logger as logger
 from openhands.core.utils import json
 from openhands.events.action.action import Action
 from openhands.events.action.agent import (
-    AgentFinishAction,
     ChangeAgentStateAction,
 )
 from openhands.events.action.empty import NullAction
@@ -31,6 +30,7 @@ class EventStreamSubscriber(str, Enum):
     RUNTIME = 'runtime'
     MAIN = 'main'
     TEST = 'test'
+    MEMORY = 'memory'
 
 
 class EventStream:
@@ -203,22 +203,6 @@ class EventStream:
         # self._subscribers = {}
         self._reinitialize_from_file_store()
 
-    def get_last_action(self, end_id: int = -1) -> Action | None:
-        """Return the last action from the event stream, filtered to exclude unwanted events."""
-
-        end_id = end_id if end_id != -1 else self._cur_id - 1
-
-        last_action = next(
-            (
-                event
-                for event in self.get_events(end_id=end_id, reverse=True)
-                if isinstance(event, Action)
-            ),
-            None,
-        )
-
-        return last_action
-
     def get_last_observation(self, end_id: int = -1) -> Observation | None:
         """Return the last observation from the event stream, filtered to exclude unwanted events."""
 
@@ -272,20 +256,6 @@ class EventStream:
         return list(
             event for event in self.get_events(start_id=start_id, end_id=end_id)
         )
-
-    def get_current_user_intent(self):
-        """Returns the latest user message and image(if provided) that appears after a FinishAction, or the first (the task) if nothing was finished yet."""
-        last_user_message = None
-        last_user_message_image_urls: list[str] | None = []
-        for event in self.get_events(reverse=True):
-            if isinstance(event, MessageAction) and event.source == 'user':
-                last_user_message = event.content
-                last_user_message_image_urls = event.images_urls
-            elif isinstance(event, AgentFinishAction):
-                if last_user_message is not None:
-                    return last_user_message
-
-        return last_user_message, last_user_message_image_urls
 
     def has_delegation(self) -> bool:
         for event in self.get_events():

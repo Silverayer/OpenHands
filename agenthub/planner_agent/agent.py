@@ -7,8 +7,8 @@ from openhands.core.message import ImageContent, Message, TextContent
 from openhands.core.utils import json
 from openhands.events.action import Action, AgentFinishAction
 from openhands.events.serialization.event import event_to_memory
-from openhands.events.stream import EventStream
 from openhands.llm.llm import LLM
+from openhands.memory.conversation_memory import ConversationMemory
 
 
 class PlannerAgent(Agent):
@@ -19,13 +19,15 @@ class PlannerAgent(Agent):
     """
     response_parser = PlannerResponseParser()
 
-    def __init__(self, llm: LLM, config: AgentConfig, event_stream: EventStream):
+    def __init__(self, llm: LLM, config: AgentConfig, memory: ConversationMemory):
         """Initialize the Planner Agent with an LLM
 
         Parameters:
-        - llm (LLM): The llm to be used by this agent
+        - llm: The llm to be used by this agent
+        - config: The agent config
+        - memory: The memory for this agent
         """
-        super().__init__(llm, config, event_stream)
+        super().__init__(llm, config, memory)
 
     def step(self, state: State) -> Action:
         """Checks to see if current step is completed, returns AgentFinishAction if True.
@@ -46,10 +48,10 @@ class PlannerAgent(Agent):
             return AgentFinishAction()
 
         # the goal (user-defined task)
-        task, image_urls = self.event_stream.get_current_user_intent()
+        task, image_urls = self.memory.get_current_user_intent()
 
         # we will need the last action for the hint
-        last_action = self.event_stream.get_last_action()
+        last_action = self.memory.get_last_action()
 
         # get history as a string to insert into the prompt
         history_str = self._get_history_str()
@@ -78,7 +80,7 @@ class PlannerAgent(Agent):
         history_dicts = []
 
         # retrieve the latest HISTORY_SIZE events
-        for event_count, event in enumerate(self.event_stream.get_events(reverse=True)):
+        for event_count, event in enumerate(self.memory.get_events(reverse=True)):
             if event_count >= HISTORY_SIZE:
                 break
             history_dicts.append(

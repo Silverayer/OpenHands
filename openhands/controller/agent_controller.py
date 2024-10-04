@@ -39,6 +39,7 @@ from openhands.events.observation import (
 )
 from openhands.events.serialization.event import truncate_content
 from openhands.llm.llm import LLM
+from openhands.memory.conversation_memory import ConversationMemory
 from openhands.runtime.utils.shutdown_listener import should_continue
 
 # note: RESUME is only available on web GUI
@@ -388,13 +389,17 @@ class AgentController:
         Args:
             action (AgentDelegateAction): The action containing information about the delegate agent to start.
         """
+        # prepare the required arguments for the delegate agent: llm, agent_config, memory
         agent_cls: Type[Agent] = Agent.get_cls(action.agent)
         agent_config = self.agent_configs.get(action.agent, self.agent.config)
         llm_config = self.agent_to_llm_config.get(action.agent, self.agent.llm.config)
         llm = LLM(config=llm_config)
-        delegate_agent = agent_cls(
-            llm=llm, config=agent_config, event_stream=self.event_stream
-        )
+
+        # set up the delegate agent's memory: start from zero
+        delegate_memory = ConversationMemory(event_stream=self.event_stream)
+
+        # create the delegate agent
+        delegate_agent = agent_cls(llm=llm, config=agent_config, memory=delegate_memory)
         state = State(
             inputs=action.inputs or {},
             local_iteration=0,

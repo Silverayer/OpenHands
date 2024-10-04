@@ -23,8 +23,8 @@ from openhands.events.observation import (
 from openhands.events.observation.error import ErrorObservation
 from openhands.events.observation.observation import Observation
 from openhands.events.serialization.event import truncate_content
-from openhands.events.stream import EventStream
 from openhands.llm.llm import LLM
+from openhands.memory.conversation_memory import ConversationMemory
 from openhands.runtime.plugins import (
     AgentSkillsRequirement,
     JupyterRequirement,
@@ -69,14 +69,14 @@ class CodeActAgent(Agent):
         self,
         llm: LLM,
         config: AgentConfig,
-        event_stream: EventStream,
+        memory: ConversationMemory,
     ) -> None:
         """Initializes a new instance of the CodeActAgent class.
 
         Parameters:
         - llm (LLM): The llm to be used by this agent
         """
-        super().__init__(llm, config, event_stream)
+        super().__init__(llm, config, memory=memory)
         self.reset()
 
         self.micro_agent = (
@@ -191,7 +191,7 @@ class CodeActAgent(Agent):
         - AgentFinishAction() - end the interaction
         """
         # if we're done, go back
-        latest_user_message = self.event_stream.get_last_user_message()
+        latest_user_message = self.memory.get_last_user_message()
         if latest_user_message and latest_user_message.strip() == '/exit':
             return AgentFinishAction()
 
@@ -232,7 +232,7 @@ class CodeActAgent(Agent):
             ),
         ]
 
-        for event in self.event_stream.get_events():
+        for event in self.memory.get_events():
             # create a regular message from an event
             if isinstance(event, Action):
                 message = self.get_action_message(event)
